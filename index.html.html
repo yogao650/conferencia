@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conferência de Mercadoria - Logística</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        @media print { .no-print { display: none !important; } .print-only { display: block !important; } }
+        .print-only { display: none; }
+        .step-card { transition: all 0.3s ease; }
+        .step-card:hover { transform: translateY(-2px); }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen">
+
+    <!-- Interface Principal -->
+    <div id="app-ui" class="no-print">
+        <header class="bg-indigo-700 text-white p-4 shadow-lg sticky top-0 z-50">
+            <div class="max-w-4xl mx-auto flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <div class="bg-white/20 p-2 rounded-lg">
+                        <i data-lucide="package" class="w-6 h-6"></i>
+                    </div>
+                    <h1 class="font-black text-xl tracking-tight">CONFERÊNCIA PRO</h1>
+                </div>
+                <div id="status-cloud" class="text-[10px] font-bold bg-indigo-800 px-3 py-1.5 rounded-full flex items-center gap-2">
+                    <div class="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div>
+                    SISTEMA ONLINE
+                </div>
+            </div>
+        </header>
+
+        <main id="main-content" class="max-w-4xl mx-auto p-4 md:p-6">
+            <!-- Tela de Seleção de Notas -->
+            <div id="view-home" class="space-y-6 animate-in fade-in duration-500">
+                <div class="bg-white p-8 rounded-[2rem] shadow-sm border border-slate-200">
+                    <div class="mb-6">
+                        <h2 class="text-2xl font-black text-slate-800">Painel de Notas</h2>
+                        <p class="text-slate-400 font-medium">Importe arquivos XML para iniciar a conferência</p>
+                    </div>
+                    
+                    <label class="block w-full bg-indigo-50 border-2 border-dashed border-indigo-200 p-10 rounded-3xl text-center cursor-pointer hover:bg-indigo-100 hover:border-indigo-400 transition-all group">
+                        <div class="bg-white w-16 h-16 rounded-2xl shadow-sm flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+                            <i data-lucide="upload-cloud" class="w-8 h-8 text-indigo-600"></i>
+                        </div>
+                        <span class="block font-black text-indigo-700 text-lg uppercase">Selecionar XML da Nota</span>
+                        <p class="text-indigo-400 text-sm mt-1">Clique ou arraste o arquivo aqui</p>
+                        <input type="file" id="xml-input" accept=".xml" class="hidden">
+                    </label>
+                </div>
+
+                <div class="flex items-center justify-between px-2">
+                    <h3 class="font-black text-slate-400 uppercase tracking-widest text-xs">Histórico Recente</h3>
+                    <div id="item-count" class="text-xs font-bold text-slate-400">0 notas</div>
+                </div>
+
+                <div id="history-list" class="grid gap-4">
+                    <!-- Notas aparecerão aqui via JS -->
+                    <div class="bg-white p-12 rounded-[2rem] text-center border border-dashed border-slate-200">
+                        <i data-lucide="inbox" class="w-12 h-12 text-slate-200 mx-auto mb-3"></i>
+                        <p class="text-slate-400 font-medium">Nenhuma nota encontrada no banco de dados.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tela de Conferência Ativa -->
+            <div id="view-active" class="hidden space-y-6 animate-in zoom-in-95 duration-300">
