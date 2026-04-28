@@ -3,73 +3,115 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Conferência PRO</title>
+    <title>Conferência PRO - Local</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
 </head>
-<body class="bg-slate-50 min-h-screen font-sans">
-    <div id="app" class="max-w-4xl mx-auto p-6">
-        <header class="flex justify-between items-center mb-8 bg-indigo-700 p-4 rounded-2xl text-white shadow-lg">
-            <h1 class="font-black text-xl">CONFERÊNCIA PRO</h1>
-            <span id="cloud-status" class="text-[10px] bg-indigo-800 px-2 py-1 rounded-full">SINCRO ONLINE</span>
+<body class="bg-slate-100 min-h-screen p-4 font-sans">
+    <div class="max-w-xl mx-auto">
+        <header class="bg-indigo-700 text-white p-5 rounded-2xl mb-6 shadow-lg text-center">
+            <h1 class="font-black text-xl tracking-tight">CONFERÊNCIA OFFLINE</h1>
         </header>
 
-        <div id="home">
-            <div class="bg-white p-8 rounded-3xl shadow-md border-2 border-dashed border-indigo-100 text-center">
-                <input type="file" id="xml-file" accept=".xml" class="hidden">
-                <button onclick="document.getElementById('xml-file').click()" class="bg-indigo-600 text-white px-8 py-4 rounded-2xl font-black hover:bg-indigo-700 transition-all">
-                    IMPORTAR XML DA NOTA
+        <div id="tela-inicial">
+            <div class="bg-white p-8 rounded-[2rem] shadow-sm border-2 border-dashed border-indigo-200 text-center mb-6">
+                <input type="file" id="arquivo-xml" accept=".xml" class="hidden">
+                <button onclick="document.getElementById('arquivo-xml').click()" class="bg-indigo-600 text-white px-8 py-4 rounded-2xl font-black w-full shadow-lg active:scale-95 transition-all">
+                    SELECIONAR XML
                 </button>
-                <p class="text-slate-400 mt-4 text-sm">Selecione o arquivo da nota fiscal para começar</p>
             </div>
-            <div id="list" class="mt-8 space-y-4">
-                <p class="text-center text-slate-400">Buscando notas no banco de dados...</p>
-            </div>
+            <div id="lista-notas" class="space-y-3"></div>
         </div>
 
-        <div id="scanner" class="hidden">
-            <button onclick="location.reload()" class="mb-4 text-indigo-600 font-bold">← Voltar</button>
-            <div class="bg-white p-6 rounded-3xl shadow-xl mb-6">
-                <h2 id="note-title" class="font-black text-lg mb-4">Nota</h2>
+        <div id="tela-conferencia" class="hidden">
+            <button onclick="location.reload()" class="text-indigo-600 mb-4 font-bold flex items-center">← VOLTAR</button>
+            <div class="bg-white p-6 rounded-3xl shadow-xl border-l-8 border-indigo-600 mb-6">
+                <h2 id="nome-nota" class="font-black text-slate-800 truncate mb-4"></h2>
                 <div class="flex gap-2">
-                    <input type="text" id="barcode" placeholder="Bipe o produto" class="flex-1 p-4 border-2 rounded-xl outline-none focus:border-indigo-600">
-                    <input type="number" id="qty" value="1" class="w-20 p-4 border-2 rounded-xl text-center font-bold">
-                    <button onclick="confirmItem()" class="bg-indigo-600 text-white px-6 rounded-xl font-bold">OK</button>
+                    <input type="text" id="input-ean" placeholder="Bipe o código" class="flex-1 p-4 bg-slate-50 border-2 rounded-2xl text-lg outline-none focus:border-indigo-600">
+                    <button onclick="confirmarBip()" class="bg-indigo-600 text-white px-6 rounded-2xl font-black">OK</button>
                 </div>
             </div>
-            <div id="items" class="bg-white rounded-2xl shadow-md overflow-hidden divide-y"></div>
+            <div id="lista-itens" class="bg-white rounded-3xl shadow-sm divide-y overflow-hidden"></div>
         </div>
     </div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
-        import { getFirestore, collection, doc, addDoc, updateDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
-        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js";
+    <script>
+        let notas = JSON.parse(localStorage.getItem('minhas_notas') || '[]');
+        let notaAtivaIdx = null;
 
-        // CONFIGURAÇÃO AUTOMÁTICA (Usando a chave padrão do seu projeto se existir, ou uma temporária)
-        const firebaseConfig = window.__firebase_config ? JSON.parse(window.__firebase_config) : {
-            apiKey: "AIzaSyAs-Exemplo-123", // O Firebase gera isso
-            authDomain: "conferencia-ean.firebaseapp.com",
-            projectId: "conferencia-ean",
-            storageBucket: "conferencia-ean.appspot.com",
-            messagingSenderId: "123",
-            appId: "1:123:web:123"
+        function salvar() {
+            localStorage.setItem('minhas_notas', JSON.stringify(notas));
+            renderizarLista();
+        }
+
+        document.getElementById('arquivo-xml').onchange = async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const texto = await file.text();
+            const xml = new DOMParser().parseFromString(texto, "text/xml");
+            const produtos = xml.getElementsByTagName("det");
+            const itens = [];
+
+            for(let i=0; i<produtos.length; i++) {
+                const p = produtos[i].getElementsByTagName("prod")[0];
+                itens.push({
+                    ean: p.getElementsByTagName("cEAN")[0]?.textContent?.trim() || p.getElementsByTagName("cProd")[0]?.textContent?.trim(),
+                    nome: p.getElementsByTagName("xProd")[0]?.textContent,
+                    esperado: parseFloat(p.getElementsByTagName("qCom")[0]?.textContent || 0),
+                    lido: 0
+                });
+            }
+
+            notas.push({ nome: file.name, itens: itens });
+            salvar();
+            alert("Nota importada com sucesso neste aparelho!");
         };
 
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        const auth = getAuth(app);
-        const path = "conferencia-v1";
+        function renderizarLista() {
+            const lista = document.getElementById('lista-notas');
+            lista.innerHTML = notas.length === 0 ? '<p class="text-center text-slate-400">Nenhuma nota importada.</p>' : '';
+            notas.forEach((n, idx) => {
+                const div = document.createElement('div');
+                div.className = "bg-white p-5 rounded-2xl shadow-sm border flex justify-between items-center cursor-pointer hover:border-indigo-500";
+                div.innerHTML = <span class="font-bold text-slate-700">${n.nome}</span> <b class="text-indigo-600">></b>;
+                div.onclick = () => abrir(idx);
+                lista.appendChild(div);
+            });
+        }
 
-        let currentNote = null;
-        let noteId = null;
+        function abrir(idx) {
+            notaAtivaIdx = idx;
+            document.getElementById('tela-inicial').classList.add('hidden');
+            document.getElementById('tela-conferencia').classList.remove('hidden');
+            document.getElementById('nome-nota').innerText = notas[idx].nome;
+            renderizarItens();
+        }
 
-        // Login
-        signInAnonymously(auth).then(() => {
-            onSnapshot(collection(db, 'artifacts', path, 'public', 'data', 'notes'), (snap) => {
-                const listDiv = document.getElementById('list');
-                listDiv.innerHTML = snap.empty ? '<p class="text-center text-slate-300">Nenhuma nota encontrada.</p>' : '';
-                snap.docs.forEach(d => {
-                    const data = d.data();
-                    const btn = document.createElement('div');
-                    btn.className = "bg-white p-4
+        window.confirmarBip = () => {
+            const ean = document.getElementById('input-ean').value.trim();
+            const idx = notas[notaAtivaIdx].itens.findIndex(i => i.ean === ean);
+            if(idx !== -1) {
+                notas[notaAtivaIdx].itens[idx].lido += 1;
+                salvar();
+                renderizarItens();
+                document.getElementById('input-ean').value = "";
+                document.getElementById('input-ean').focus();
+            } else {
+                alert("Produto não encontrado na nota!");
+            }
+        };
+
+        function renderizarItens() {
+            const lista = document.getElementById('lista-itens');
+            lista.innerHTML = notas[notaAtivaIdx].itens.map(i => `
+                <div class="p-4 flex justify-between items-center ${i.lido >= i.esperado ? 'bg-emerald-50' : ''}">
+                    <div class="pr-2"><p class="text-sm font-bold">${i.nome}</p><p class="text-[10px] text-slate-400">${i.ean}</p></div>
+                    <div class="font-black text-indigo-700">${i.lido} / ${i.esperado}</div>
+                </div>
+            `).join('');
+        }
+
+        renderizarLista();
+    </script>
+</body>
+</html>
